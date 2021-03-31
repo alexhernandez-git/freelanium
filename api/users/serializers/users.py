@@ -254,7 +254,7 @@ class UserSignUpSerializer(serializers.Serializer):
             plan = helpers.get_plan(currency)
 
             new_customer = stripe.Customer.create(
-                description="freelaniumCustomer_"+user.first_name+'_'+user.last_name,
+                description="freeCustomer_"+user.first_name+'_'+user.last_name,
                 name=user.first_name+' '+user.last_name,
                 email=user.email,
             )
@@ -1060,7 +1060,7 @@ class BecomeASellerSerializer(serializers.Serializer):
         plan = helpers.get_plan(currency)
 
         new_customer = stripe.Customer.create(
-            description="claCustomer_"+user.first_name+'_'+user.last_name,
+            description="freeCustomer_"+user.first_name+'_'+user.last_name,
             name=user.first_name+' '+user.last_name,
             email=user.email,
         )
@@ -1160,7 +1160,7 @@ class AttachPaymentMethodSerializer(serializers.Serializer):
         )
         if not user.stripe_customer_id:
             new_customer = stripe.Customer.create(
-                description="claCustomer_"+user.first_name+'_'+user.last_name,
+                description="freeCustomer_"+user.first_name+'_'+user.last_name,
                 name=user.first_name+' '+user.last_name,
                 email=user.email,
             )

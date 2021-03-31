@@ -32,7 +32,7 @@ class Order(CModel):
     RECURRENT_ORDER = 'RO'
 
     TYPE_CHOICES = [
-        (NORMAL_ORDER, 'Two payments order'),
+        (NORMAL_ORDER, 'Normal order'),
         (TWO_PAYMENTS_ORDER, 'Two payments order'),
         (RECURRENT_ORDER, 'Recurrent order'),
     ]

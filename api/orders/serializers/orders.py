@@ -116,7 +116,7 @@ class AcceptOrderSerializer(serializers.Serializer):
         if not user.stripe_customer_id:
 
             new_customer = stripe.Customer.create(
-                description="claCustomer_"+user.first_name+'_'+user.last_name,
+                description="freeCustomer_"+user.first_name+'_'+user.last_name,
                 name=user.first_name+' '+user.last_name,
                 email=user.email,
             )
