@@ -224,6 +224,18 @@ class UserSignUpSerializer(serializers.Serializer):
             if payload['type'] != 'invitation_token':
                 raise serializers.ValidationError('Invalid token')
             self.context['payload'] = payload
+        if 'coupon' in self.context and self.context['coupon']:
+            coupon = self.context['coupon']
+
+            stripe = self.context['stripe']
+
+            try:
+                stripe_coupon = stripe.Coupon.retrieve(coupon)
+                if not stripe_coupon['valid']:
+                    raise serializers.ValidationError({'coupon': 'This coupon is not valid'})
+
+            except:
+                raise serializers.ValidationError({'coupon': 'This coupon does not exist'})
 
         return data
 

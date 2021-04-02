@@ -231,12 +231,6 @@ class UserViewSet(mixins.RetrieveModelMixin,
         coupon = None
         if 'coupon' in request.data and request.data['coupon']:
             coupon = request.data['coupon']
-            try:
-                stripe_coupon = stripe.Coupon.retrieve(coupon)
-                if not stripe_coupon['valid']:
-                    return Response("This coupon is not valid", status=status.HTTP_400_BAD_REQUEST)
-            except:
-                return Response("This coupon is not valid", status=status.HTTP_400_BAD_REQUEST)
 
         serializer = UserSignUpSerializer(data=request.data,
                                           context={'request': request, 'seller': True,
