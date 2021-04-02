@@ -43,6 +43,7 @@ from api.users.serializers import (
     ForgetPasswordSerializer,
     ResetPasswordSerializer,
     IsEmailAvailableSerializer,
+    IsCouponAvailableSerializer,
     IsUsernameAvailableSerializer,
     InviteUserSerializer,
     StripeConnectSerializer,
@@ -192,6 +193,22 @@ class UserViewSet(mixins.RetrieveModelMixin,
         return Response(data=email, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'])
+    def is_coupon_available(self, request):
+        """Check if coupon passed is correct."""
+        if 'STRIPE_API_KEY' in env:
+            stripe.api_key = env('STRIPE_API_KEY')
+        else:
+            stripe.api_key = 'sk_test_51IZy28Dieqyg7vAImOKb5hg7amYYGSzPTtSqoT9RKI69VyycnqXV3wCPANyYHEl2hI7KLHHAeIPpC7POg7I4WMwi00TSn067f4'
+        serializer = IsCouponAvailableSerializer(
+            data=request.data,
+            context={'stripe': stripe}
+        )
+
+        serializer.is_valid(raise_exception=True)
+        coupon = serializer.data
+        return Response(data=coupon, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'])
     def is_username_available(self, request):
         """Check if email passed is correct."""
         serializer = IsUsernameAvailableSerializer(
@@ -211,9 +228,12 @@ class UserViewSet(mixins.RetrieveModelMixin,
         invitation_token = None
         if 'invitation_token' in request.data:
             invitation_token = request.data['invitation_token']
-        serializer = UserSignUpSerializer(
-            data=request.data,
-            context={'request': request, 'seller': True, 'invitation_token': invitation_token, 'stripe': stripe})
+        if 'coupon' in request.data:
+            coupon = request.data['coupon']
+        serializer = UserSignUpSerializer(data=request.data,
+                                          context={'request': request, 'seller': True,
+                                                   'invitation_token': invitation_token, 'stripe': stripe,
+                                                   'coupon': coupon})
         serializer.is_valid(raise_exception=True)
         user, token = serializer.save()
         user_serialized = UserModelSerializer(user).data

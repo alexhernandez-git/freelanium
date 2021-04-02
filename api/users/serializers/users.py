@@ -240,7 +240,9 @@ class UserSignUpSerializer(serializers.Serializer):
 
         if 'currency' in data:
             currency = data['currency']
-
+        coupon = None
+        if 'coupon' in self.context and self.context['coupon']:
+            coupon = self.context['coupon']
         expiration_date = timezone.now() + datetime.timedelta(days=14)
 
         if is_seller:
@@ -258,24 +260,47 @@ class UserSignUpSerializer(serializers.Serializer):
                 name=user.first_name+' '+user.last_name,
                 email=user.email,
             )
+            if coupon:
 
-            subscription = stripe.Subscription.create(
-                customer=new_customer['id'],
-                items=[
-                    {"price": plan.stripe_price_id}
-                ],
-                trial_period_days="14",
-            )
-            PlanSubscription.objects.create(
-                user=user,
-                subscription_id=subscription["id"],
-                plan_unit_amount=plan.unit_amount,
-                plan_currency=plan.currency,
-                status=subscription['status'],
-                plan_price_label=plan.price_label,
-                plan_type=plan.type,
-                product_id=plan.stripe_product_id
-            )
+                subscription = stripe.Subscription.create(
+                    customer=new_customer['id'],
+                    items=[
+                        {"price": plan.stripe_price_id}
+                    ],
+                    trial_period_days="14",
+                    coupon=coupon
+                )
+            else:
+                subscription = stripe.Subscription.create(
+                    customer=new_customer['id'],
+                    items=[
+                        {"price": plan.stripe_price_id}
+                    ],
+                    trial_period_days="14"
+                )
+            if coupon:
+                PlanSubscription.objects.create(
+                    user=user,
+                    subscription_id=subscription["id"],
+                    plan_unit_amount=plan.unit_amount,
+                    plan_currency=plan.currency,
+                    status=subscription['status'],
+                    plan_price_label=plan.price_label,
+                    plan_type=plan.type,
+                    product_id=plan.stripe_product_id,
+                    coupon=coupon
+                )
+            else:
+                PlanSubscription.objects.create(
+                    user=user,
+                    subscription_id=subscription["id"],
+                    plan_unit_amount=plan.unit_amount,
+                    plan_currency=plan.currency,
+                    status=subscription['status'],
+                    plan_price_label=plan.price_label,
+                    plan_type=plan.type,
+                    product_id=plan.stripe_product_id,
+                )
             user.country = country
             user.seller_view = True
             user.is_seller = True
@@ -444,6 +469,27 @@ class IsEmailAvailableSerializer(serializers.Serializer):
             raise serializers.ValidationError('This email is already in use')
 
         return {"email": email}
+
+
+class IsCouponAvailableSerializer(serializers.Serializer):
+    """Acount verification serializer."""
+
+    coupon = serializers.CharField()
+
+    def validate(self, data):
+        """Update user's verified status."""
+
+        coupon = data['coupon']
+        stripe = self.context['stripe']
+        try:
+            stripe_coupon = stripe.Coupon.retrieve(coupon)
+            if not stripe_coupon['valid']:
+                raise serializers.ValidationError('This coupon is not valid')
+
+        except:
+            raise serializers.ValidationError('This coupon does not exist')
+
+        return {"coupon": coupon}
 
 
 class IsUsernameAvailableSerializer(serializers.Serializer):
