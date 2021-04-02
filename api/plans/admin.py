@@ -12,4 +12,4 @@ from api.plans.models import Plan
 class PlanAdmin(admin.ModelAdmin):
     """Plan model admin."""
 
-    list_display = ("price_label", "type", "currency")
+    list_display = ("price_label", "type", "currency", "stripe_price_id", "stripe_product_id")
