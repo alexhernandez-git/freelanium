@@ -258,18 +258,11 @@ class UserSignUpSerializer(serializers.Serializer):
                 name=user.first_name+' '+user.last_name,
                 email=user.email,
             )
-            product = stripe.Product.create(name="Basic Plan for" + '_' + user.username)
 
-            price = stripe.Price.create(
-                unit_amount=int(plan.unit_amount * 100),
-                currency=currency,
-                recurring={"interval": "month"},
-                product=product['id']
-            )
             subscription = stripe.Subscription.create(
                 customer=new_customer['id'],
                 items=[
-                    {"price": price['id']}
+                    {"price": plan.stripe_price_id}
                 ],
                 trial_period_days="14",
             )
@@ -281,7 +274,7 @@ class UserSignUpSerializer(serializers.Serializer):
                 status=subscription['status'],
                 plan_price_label=plan.price_label,
                 plan_type=plan.type,
-                product_id=product["id"]
+                product_id=plan.stripe_product_id
             )
             user.country = country
             user.seller_view = True
@@ -803,12 +796,6 @@ class StripeSellerSubscriptionSerializer(serializers.Serializer):
             if currency != plan_currency:
                 plan = helpers.get_plan(currency)
 
-                price = stripe.Price.create(
-                    unit_amount=int(plan.unit_amount * 100),
-                    currency=plan.currency,
-                    recurring={"interval": "month"},
-                    product=plan_subscription.product_id
-                )
                 subscription = stripe.Subscription.retrieve(plan_subscription.subscription_id)
 
                 stripe.Subscription.modify(
@@ -818,7 +805,7 @@ class StripeSellerSubscriptionSerializer(serializers.Serializer):
                     items=[
                         {
                             'id': subscription['items']['data'][0].id,
-                            "price": price["id"],
+                            "price": plan.stripe_price_id,
                         },
                     ]
                 )
@@ -857,17 +844,10 @@ class StripeSellerSubscriptionSerializer(serializers.Serializer):
         else:
             plan = helpers.get_plan(user.currency)
 
-            product = stripe.Product.create(name="Basic Plan for" + '_' + user.username)
-            price = stripe.Price.create(
-                unit_amount=int(plan.unit_amount * 100),
-                currency=plan.currency,
-                recurring={"interval": "month"},
-                product=product['id']
-            )
             subscription = stripe.Subscription.create(
                 customer=user.stripe_customer_id,
                 items=[
-                    {"price": price['id']}
+                    {"price": plan.stripe_price_id}
                 ],
             )
             plan_subscription = PlanSubscription.objects.create(
@@ -877,7 +857,7 @@ class StripeSellerSubscriptionSerializer(serializers.Serializer):
                 plan_currency=plan.currency,
                 plan_price_label=plan.price_label,
                 plan_type=plan.type,
-                product_id=product["id"]
+                product_id=plan.stripe_product_id
             )
             user.seller_view = True
             user.is_seller = True
@@ -902,51 +882,13 @@ class SellerChangePaymentMethodSerializer(serializers.Serializer):
 
     def validate(self, data):
         """Update user's verified status."""
-        stripe = self.context['stripe']
         request = self.context['request']
         user = request.user
-        payment_method_id = data.get("payment_method_id", "")
         subscriptions_queryset = PlanSubscription.objects.filter(user=user, cancelled=False)
 
         if not subscriptions_queryset.exists():
             raise serializers.ValidationError(
                 "User have not a plan subscription")
-
-        plan_subscription = subscriptions_queryset.first()
-        plan_currency = plan_subscription.plan_currency
-        currency, _ = helpers.get_currency_and_country(request)
-        if currency != plan_currency:
-
-            plan = helpers.get_plan(currency)
-
-            price = stripe.Price.create(
-                unit_amount=int(plan.unit_amount * 100),
-                currency=plan.currency,
-                recurring={"interval": "month"},
-                product=plan_subscription.product_id
-            )
-
-            subscription = stripe.Subscription.retrieve(plan_subscription.subscription_id)
-
-            stripe.Subscription.modify(
-                subscription["id"],
-                cancel_at_period_end=False,
-                proration_behavior=None,
-                items=[
-                    {
-                        'id': subscription['items']['data'][0].id,
-                        "price": price["id"],
-                    },
-                ],
-                default_payment_method=payment_method_id
-            )
-            plan_subscription.plan_type = plan.type
-            plan_subscription.plan_currency = plan.currency
-            plan_subscription.plan_unit_amount = plan.unit_amount
-            plan_subscription.plan_price_label = plan.price_label
-            plan_subscription.save()
-
-        # Create customer if not exists
 
         return data
 
@@ -1005,17 +947,10 @@ class SellerReactivateSubscriptionSerializer(serializers.Serializer):
         else:
             plan = helpers.get_plan(user.currency)
 
-            product = stripe.Product.create(name="Basic Plan for" + '_' + user.username)
-            price = stripe.Price.create(
-                unit_amount=int(plan.unit_amount * 100),
-                currency=plan.currency,
-                recurring={"interval": "month"},
-                product=product['id']
-            )
             subscription = stripe.Subscription.create(
                 customer=user.stripe_customer_id,
                 items=[
-                    {"price": price['id']}
+                    {"price": plan.stripe_price_id}
                 ],
             )
             plan_subscription = PlanSubscription.objects.create(
@@ -1025,7 +960,7 @@ class SellerReactivateSubscriptionSerializer(serializers.Serializer):
                 plan_currency=plan.currency,
                 plan_price_label=plan.price_label,
                 plan_type=plan.type,
-                product_id=product["id"]
+                product_id=plan.stripe_product_id
             )
             user.seller_view = True
             user.is_seller = True
@@ -1064,21 +999,15 @@ class BecomeASellerSerializer(serializers.Serializer):
             name=user.first_name+' '+user.last_name,
             email=user.email,
         )
-        product = stripe.Product.create(name="Basic Plan for" + '_' + user.username)
-        price = stripe.Price.create(
-            unit_amount=int(plan.unit_amount * 100),
-            currency=plan.currency,
-            recurring={"interval": "month"},
-            product=product['id']
-        )
+
         subscription = stripe.Subscription.create(
             customer=new_customer['id'],
             items=[
-                {"price": price['id']}
+                {"price": plan.stripe_price_id}
             ],
             trial_period_days="14",
         )
-        plan_subscription = PlanSubscription.objects.create(
+        PlanSubscription.objects.create(
             user=user,
             subscription_id=subscription["id"],
             plan_unit_amount=plan.unit_amount,
@@ -1086,16 +1015,14 @@ class BecomeASellerSerializer(serializers.Serializer):
             plan_price_label=plan.price_label,
             plan_type=plan.type,
             status=subscription['status'],
-            product_id=product["id"]
+            product_id=plan.stripe_product_id
         )
-        self.context['plan_subscription'] = plan_subscription
         self.context['new_customer_id'] = new_customer['id']
 
         return data
 
     def update(self, instance, validated_data):
         expiration_date = timezone.now() + datetime.timedelta(days=14)
-        plan_subscription = self.context['plan_subscription']
         new_customer_id = self.context['new_customer_id']
         instance.is_seller = True
         instance.is_free_trial = True

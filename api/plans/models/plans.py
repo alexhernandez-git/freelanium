@@ -16,3 +16,5 @@ class Plan(CModel):
     unit_amount = models.FloatField(null=True, blank=True)
     currency = models.CharField(max_length=3, blank=True, null=True)
     price_label = models.CharField(max_length=100, blank=True, null=True)
+    stripe_price_id = models.CharField(max_length=100, blank=True, null=True)
+    stripe_product_id = models.CharField(max_length=100, blank=True, null=True)

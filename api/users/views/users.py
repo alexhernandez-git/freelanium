@@ -27,6 +27,7 @@ from api.users.permissions import IsAccountOwner
 
 # Models
 from api.users.models import User, UserLoginActivity, PlanSubscription, Earning, Contact, PlanPayment
+from api.plans.models import Plan
 from api.orders.models import OrderPayment, Order
 from djmoney.money import Money
 
@@ -885,29 +886,56 @@ class UserViewSet(mixins.RetrieveModelMixin,
 
                     if plan_user.active_month:
 
+                        def create_new_price():
+                            price = stripe.Price.create(
+                                unit_amount=int(plan_subscription.plan_unit_amount * 100),
+                                currency=plan_subscription.plan_currency,
+                                product=product_id,
+                                recurring={"interval": "month"},
+                            )
+
+                            subscription = stripe.Subscription.retrieve(
+                                subscription_id)
+
+                            stripe.Subscription.modify(
+                                subscription_id,
+                                cancel_at_period_end=False,
+                                proration_behavior=None,
+                                items=[
+                                    {
+                                        'id': subscription['items']['data'][0]['id'],
+                                        "price": price['id']
+                                    },
+                                ],
+                            )
+
                         product_id = plan_subscription.product_id
+                        plan_currency = plan_subscription.plan_currency
+                        plans = Plan.objects.filter(stripe_product_id=product_id, currency=plan_currency)
+                        if plans.exists():
+                            plan = plans.first()
+                            if plan.unit_amount != plan_subscription.plan_unit_amount:
+                                create_new_price()
+                            else:
 
-                        price = stripe.Price.create(
-                            unit_amount=int(plan_subscription.plan_unit_amount * 100),
-                            currency=plan_subscription.plan_currency,
-                            product=product_id,
-                            recurring={"interval": "month"},
-                        )
+                                subscription = stripe.Subscription.retrieve(
+                                    subscription_id)
 
-                        subscription = stripe.Subscription.retrieve(
-                            subscription_id)
+                                stripe.Subscription.modify(
+                                    subscription_id,
+                                    cancel_at_period_end=False,
+                                    proration_behavior=None,
+                                    items=[
+                                        {
+                                            'id': subscription['items']['data'][0]['id'],
+                                            "price": plan.stripe_price_id
+                                        },
+                                    ],
+                                )
 
-                        stripe.Subscription.modify(
-                            subscription_id,
-                            cancel_at_period_end=False,
-                            proration_behavior=None,
-                            items=[
-                                {
-                                    'id': subscription['items']['data'][0]['id'],
-                                    "price": price['id']
-                                },
-                            ],
-                        )
+                        # If plan does not exists
+                        else:
+                            create_new_price()
 
                         plan_user.active_month = False
                         plan_user.save()
