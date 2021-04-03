@@ -38,7 +38,7 @@ def send_feedback_email(user, message):
         'emails/users/feedback_email.html',
         {'user': user, 'message': message}
     )
-    msg = EmailMultiAlternatives(subject, content, from_email, bcc=["support@freelanium.com", "freelanium@gmail.com", ])
+    msg = EmailMultiAlternatives(subject, content, from_email, ["support@freelanium.com", "freelanium@gmail.com"])
     msg.attach_alternative(content, "text/html")
     msg.send()
 
