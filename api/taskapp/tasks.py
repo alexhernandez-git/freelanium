@@ -42,8 +42,8 @@ def send_mass_html_mail(datatuple, fail_silently=False, user=None, password=None
     connection = connection or get_connection(
         username=user, password=password, fail_silently=fail_silently)
     messages = []
-    for subject, text, html, from_email, recipient in datatuple:
-        message = EmailMultiAlternatives(subject, text, from_email, recipient)
+    for subject, html, from_email, recipient in datatuple:
+        message = EmailMultiAlternatives(subject, html, from_email, recipient)
         message.attach_alternative(html, 'text/html')
         messages.append(message)
     return connection.send_messages(messages)
@@ -61,9 +61,11 @@ def send_feedback_email(user, message):
         'emails/users/feedback_email.html',
         {'user': user, 'message': message}
     )
+    recipient_list = ["iherms@freelanium.com", "freelanium@gmail.com"]
 
     messages = [(subject, content, from_email, [recipient])
-                for recipient in ["iherms@freelanium.com", "freelanium@gmail.com"]]
+                for recipient in recipient_list]
+
     send_mass_html_mail(messages)
 
 
