@@ -198,7 +198,8 @@ class WithdrawFundsModelSerializer(serializers.ModelSerializer):
             user=user
         )
 
-        user.withdrawn = user.withdrawn + amount
+        user.available_for_withdrawal -= amount
+        user.withdrawn += amount
         user.save()
 
         return withdrawn
