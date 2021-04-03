@@ -40,9 +40,10 @@ def send_feedback_email(user, message):
     )
     recipient_list = ["support@freelanium.com", "freelanium@gmail.com"]
 
-    messages = [(subject, content, from_email, [recipient]) for recipient in recipient_list]
+    msg = EmailMultiAlternatives(subject, content, from_email, recipient_list)
+    msg.attach_alternative(content, "text/html")
 
-    send_mass_mail(messages)
+    send_mass_mail(msg)
 
 
 @task(name='send_confirmation_email', max_retries=3)
