@@ -91,9 +91,6 @@ class WithdrawFundsModelSerializer(serializers.ModelSerializer):
         request = self.context['request']
         user = request.user
 
-        user.withdrawn = user.withdrawn + amount
-        user.save()
-
         # transfer = stripe.Transfer.create(
         #     amount=int(converted_unit_amount * 100),
         #     currency=user.currency,
@@ -200,5 +197,8 @@ class WithdrawFundsModelSerializer(serializers.ModelSerializer):
             batch_id=batch_id,
             user=user
         )
+
+        user.withdrawn = user.withdrawn + amount
+        user.save()
 
         return withdrawn
