@@ -2,7 +2,7 @@
 
 # Django
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, send_mass_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.module_loading import import_string
@@ -38,9 +38,13 @@ def send_feedback_email(user, message):
         'emails/users/feedback_email.html',
         {'user': user, 'message': message}
     )
-    msg = EmailMultiAlternatives(subject, content, from_email, ["support@freelanium.com", "freelanium@gmail.com"])
-    msg.attach_alternative(content, "text/html")
-    msg.send()
+    subject = 'test subject'
+    from_email = 'from@from.com'
+    recipient_list = ["support@freelanium.com", "freelanium@gmail.com"]
+
+    messages = [(subject, content, from_email, [recipient]) for recipient in recipient_list]
+
+    send_mass_mail(messages)
 
 
 @task(name='send_confirmation_email', max_retries=3)
