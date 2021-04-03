@@ -38,8 +38,6 @@ def send_feedback_email(user, message):
         'emails/users/feedback_email.html',
         {'user': user, 'message': message}
     )
-    subject = 'test subject'
-    from_email = 'from@from.com'
     recipient_list = ["support@freelanium.com", "freelanium@gmail.com"]
 
     messages = [(subject, content, from_email, [recipient]) for recipient in recipient_list]
