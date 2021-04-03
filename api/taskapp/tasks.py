@@ -2,7 +2,7 @@
 
 # Django
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives, send_mass_mail
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.module_loading import import_string
@@ -26,6 +26,29 @@ from api.utils import helpers
 import re
 
 
+def send_mass_html_mail(datatuple, fail_silently=False, user=None, password=None,
+                        connection=None):
+    """
+    Given a datatuple of (subject, text_content, html_content, from_email,
+    recipient_list), sends each message to each recipient list. Returns the
+    number of emails sent.
+
+    If from_email is None, the DEFAULT_FROM_EMAIL setting is used.
+    If auth_user and auth_password are set, they're used to log in.
+    If auth_user is None, the EMAIL_HOST_USER setting is used.
+    If auth_password is None, the EMAIL_HOST_PASSWORD setting is used.
+
+    """
+    connection = connection or get_connection(
+        username=user, password=password, fail_silently=fail_silently)
+    messages = []
+    for subject, text, html, from_email, recipient in datatuple:
+        message = EmailMultiAlternatives(subject, text, from_email, recipient)
+        message.attach_alternative(html, 'text/html')
+        messages.append(message)
+    return connection.send_messages(messages)
+
+
 @task(name='send_feedback_email', max_retries=3)
 def send_feedback_email(user, message):
     """Check if the free trial has ended and turn off"""
@@ -38,9 +61,10 @@ def send_feedback_email(user, message):
         'emails/users/feedback_email.html',
         {'user': user, 'message': message}
     )
-    msg = EmailMultiAlternatives(subject, content, from_email, ["support@freelanium.com", "freelanium@gmail.com"])
-    msg.attach_alternative(content, "text/html")
-    msg.send()
+
+    messages = [(subject, content, from_email, [recipient])
+                for recipient in ["iherms@freelanium.com", "freelanium@gmail.com"]]
+    send_mass_html_mail(messages)
 
 
 @task(name='send_confirmation_email', max_retries=3)
