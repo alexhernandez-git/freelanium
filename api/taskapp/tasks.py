@@ -26,6 +26,23 @@ from api.utils import helpers
 import re
 
 
+@task(name='send_feedback_email', max_retries=3)
+def send_feedback_email(user, message):
+    """Check if the free trial has ended and turn off"""
+
+    subject = 'Feedback from @{}'.format(
+        user.email)
+
+    from_email = 'Freelanium <no-reply@freelanium.com>'
+    content = render_to_string(
+        'emails/users/feedback_email.html',
+        {'user': user, 'message': message}
+    )
+    msg = EmailMultiAlternatives(subject, content, from_email, ["support@freelanium.com"])
+    msg.attach_alternative(content, "text/html")
+    msg.send()
+
+
 @task(name='send_confirmation_email', max_retries=3)
 def send_confirmation_email(user):
     """Send account verification link to given user."""

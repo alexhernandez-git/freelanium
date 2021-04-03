@@ -65,7 +65,7 @@ from rest_framework.filters import SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
 
 # Celery
-from api.taskapp.tasks import send_confirmation_email
+from api.taskapp.tasks import send_confirmation_email, send_feedback_email
 
 import os
 import stripe
@@ -107,7 +107,7 @@ class UserViewSet(mixins.RetrieveModelMixin,
             'stripe_webhooks_invoice_payment_failed',
                 'forget_password']:
             permissions = [AllowAny]
-        elif self.action in ['update', 'delete', 'partial_update', 'change_password', 'change_email', 'stripe_connect', 'paypal_connect', 'destroy']:
+        elif self.action in ['update', 'delete', 'partial_update', 'change_password', 'change_email', 'stripe_connect', 'paypal_connect', 'destroy', 'leave_feedback']:
             permissions = [IsAccountOwner, IsAuthenticated]
         elif self.action in ['list', 'retrieve']:
             permissions = [IsAuthenticated]
@@ -170,6 +170,13 @@ class UserViewSet(mixins.RetrieveModelMixin,
 
         instance.account_deactivated = True
         instance.save()
+
+    @action(detail=False, methods=['post'])
+    def leave_feedback(self, request):
+        """Check if email passed is correct."""
+
+        send_feedback_email(request.user, request.data['message'])
+        return Response(status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'])
     def get_currency(self, request):
