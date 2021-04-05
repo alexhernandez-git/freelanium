@@ -56,8 +56,8 @@ class RecurrentOrderAPITestCase(SetupUsersInitialData):
             "buyer_email": "",
             "delivery_time": "7",
             "send_offer_by_email": False,
-            "title": "Normal order",
-            "description": "Normal order offer",
+            "title": "Holding payment order",
+            "description": "Holding payment order offer",
             "type": "RO",
             "unit_amount": str(order_usd_price)
         }

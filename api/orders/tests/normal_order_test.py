@@ -51,9 +51,9 @@ class NormalOrderAPITestCase(SetupUsersInitialData):
             "buyer_email": "",
             "delivery_time": "7",
             "send_offer_by_email": False,
-            "title": "Normal order",
-            "description": "Normal order offer",
-            "type": "NO",
+            "title": "Holding payment order",
+            "description": "Holding payment order offer",
+            "type": 'HO',
             "unit_amount":  str(order_usd_price)
         }
         self.order_usd_price = order_usd_price

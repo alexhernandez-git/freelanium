@@ -27,12 +27,14 @@ class Order(CModel):
     delivery_time = models.IntegerField(null=True, blank=True)
     rate_date = models.CharField(max_length=20, null=True, blank=True)
 
+    ONE_PAYMENT_ORDER = 'OP'
     TWO_PAYMENTS_ORDER = 'TP'
-    NORMAL_ORDER = 'NO'
+    HOLDING_PAYMENT_ORDER = 'HO'
     RECURRENT_ORDER = 'RO'
 
     TYPE_CHOICES = [
-        (NORMAL_ORDER, 'Normal order'),
+        (ONE_PAYMENT_ORDER, 'One payment order'),
+        (HOLDING_PAYMENT_ORDER, 'Holding payment order'),
         (TWO_PAYMENTS_ORDER, 'Two payments order'),
         (RECURRENT_ORDER, 'Recurrent order'),
     ]
@@ -77,7 +79,7 @@ class Order(CModel):
 
     service_fee = MoneyField(max_digits=14, decimal_places=2, default_currency='USD', null=True, blank=True)
 
-    # (Normal order)
+    # (Holding payment order)
     # Total due to seller at end of order
     due_to_seller = MoneyField(max_digits=14, decimal_places=2, default_currency='USD', null=True, blank=True)
 

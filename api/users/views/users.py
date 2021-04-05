@@ -153,7 +153,7 @@ class UserViewSet(mixins.RetrieveModelMixin,
         for order_subscription in order_subscriptions:
             stripe.Subscription.delete(order_subscription.subscription_id)
         order_subscriptions.update(cancelled=True)
-        normal_orders = Order.objects.filter(seller=instance, type=Order.NORMAL_ORDER)
+        normal_orders = Order.objects.filter(seller=instance, type=Order.HOLDING_PAYMENT_ORDER)
         for normal_order in normal_orders:
             # Return de money to user as credits
             buyer = normal_order.buyer

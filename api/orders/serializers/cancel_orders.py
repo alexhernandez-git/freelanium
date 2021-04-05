@@ -239,7 +239,7 @@ class AcceptOrderCancelationModelSerializer(serializers.ModelSerializer):
         order = instance.order
 
         order.status = Order.CANCELLED
-        if order.type == Order.NORMAL_ORDER:
+        if order.type == Order.HOLDING_PAYMENT_ORDER:
             # Return de money to user as credits
             buyer = order.buyer
             buyer.net_income = buyer.net_income + order.due_to_seller

@@ -1,11 +1,11 @@
-Normal order $100
-Normal order accept offer
-Normal order delivery order
-Normal order accept order
-Normal order request revision
-Normal order request cancelation
-Normal order accept cancelation
-Normal order cancel cancelation
+Holding payment order $100
+Holding payment order accept offer
+Holding payment order delivery order
+Holding payment order accept order
+Holding payment order request revision
+Holding payment order request cancelation
+Holding payment order accept cancelation
+Holding payment order cancel cancelation
 
 <<
     with 0 credits

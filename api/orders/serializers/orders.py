@@ -62,7 +62,7 @@ class AcceptOrderSerializer(serializers.Serializer):
                 "This offer already has been accepted")
 
         # Check if the payload match with the offer
-        if offer['type'] == Order.NORMAL_ORDER or offer['type'] == Order.RECURRENT_ORDER:
+        if offer['type'] == Order.ONE_PAYMENT_ORDER == offer['type'] == Order.HOLDING_PAYMENT_ORDER or offer['type'] == Order.RECURRENT_ORDER:
 
             currencyRate, _ = helpers.get_currency_rate(user.currency, offer_object.rate_date)
             subtotal = float(offer_object.unit_amount.amount) * currencyRate
@@ -148,7 +148,32 @@ class AcceptOrderSerializer(serializers.Serializer):
                 "There is not service fee in this offer")
 
         price = None
-        if offer['type'] == Order.NORMAL_ORDER:
+
+        if offer['type'] == Order.ONE_PAYMENT_ORDER:
+
+            price = stripe.Price.create(
+                unit_amount=int(unit_amount_with_discount * 100),
+                currency=user.currency,
+                product=product['id']
+            )
+            stripe.InvoiceItem.create(
+                customer=user.stripe_customer_id,
+                price=price['id'],
+            )
+            invoice = stripe.Invoice.create(
+                customer=user.stripe_customer_id,
+                default_payment_method=payment_method_id
+
+            )
+            user.default_payment_method = payment_method_id
+            user.save()
+            invoice_paid = stripe.Invoice.pay(invoice['id'])
+            self.context['price'] = price
+            self.context['product'] = product
+
+            self.context['invoice_paid'] = invoice_paid
+
+        elif offer['type'] == Order.HOLDING_PAYMENT_ORDER:
 
             price = stripe.Price.create(
                 unit_amount=int(unit_amount_with_discount * 100),
@@ -186,6 +211,8 @@ class AcceptOrderSerializer(serializers.Serializer):
             )
             invoice = stripe.Invoice.create(
                 customer=user.stripe_customer_id,
+                default_payment_method=payment_method_id
+
             )
             user.default_payment_method = payment_method_id
             user.save()
@@ -304,7 +331,68 @@ class AcceptOrderSerializer(serializers.Serializer):
             seen_by.message = chat_instance.last_message
             seen_by.save()
 
-        if offer['type'] == Order.NORMAL_ORDER:
+        if offer['type'] == Order.ONE_PAYMENT_ORDER:
+            price = self.context['price']
+
+            # user.available_for_withdrawal = user.available_for_withdrawal - \
+            #     Money(amount=used_credits, currency="USD")
+            if used_credits:
+
+                Earning.objects.create(
+                    user=user,
+                    type=Earning.SPENT,
+                    amount=Money(amount=used_credits, currency="USD")
+                )
+
+                # Substract in pending_clearance and available_for_withdrawal the used credits amount
+
+                pending_clearance = user.pending_clearance - Money(amount=used_credits, currency="USD")
+
+                if pending_clearance < Money(amount=0, currency="USD"):
+                    user.pending_clearance = Money(amount=0, currency="USD")
+                    available_money_payed = abs(pending_clearance)
+                    available_for_withdrawal = user.available_for_withdrawal - available_money_payed
+                    if available_for_withdrawal < Money(amount=0, currency="USD"):
+                        available_for_withdrawal = Money(amount=0, currency="USD")
+                    user.available_for_withdrawal = available_for_withdrawal
+                else:
+                    user.pending_clearance = pending_clearance
+
+                user.used_for_purchases = user.used_for_purchases + Money(amount=used_credits, currency="USD")
+                user.save()
+
+            invoice_paid = self.context['invoice_paid']
+            invoice_id = invoice_paid['id']
+            currency = invoice_paid['currency']
+            charge_id = invoice_paid['charge']
+            amount_paid = invoice_paid['amount_paid']
+            status = invoice_paid['status']
+            invoice_pdf = invoice_paid['invoice_pdf']
+
+            new_order.price_id = price['id']
+            new_order.save()
+
+            OrderPayment.objects.create(
+                order=new_order,
+                invoice_id=invoice_id,
+                invoice_pdf=invoice_pdf,
+                charge_id=charge_id,
+                amount_paid=float(amount_paid) / 100,
+                currency=currency,
+                status=status,
+            )
+
+            seller = new_order.seller
+            seller.net_income = seller.net_income + offer_object.unit_amount
+            seller.save()
+            Earning.objects.create(
+                user=seller,
+                amount=offer_object.unit_amount,
+                available_for_withdrawn_date=timezone.now() + timedelta(days=14)
+            )
+            seller.pending_clearance += offer_object.unit_amount
+
+        elif offer['type'] == Order.HOLDING_PAYMENT_ORDER:
 
             # user.available_for_withdrawal = user.available_for_withdrawal - \
             #     Money(amount=used_credits, currency="USD")

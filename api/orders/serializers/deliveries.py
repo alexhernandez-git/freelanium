@@ -181,10 +181,10 @@ class AcceptDeliveryModelSerializer(serializers.ModelSerializer):
 
         seller = order.seller
 
-        if order.type == Order.NORMAL_ORDER:
+        if order.type == Order.HOLDING_PAYMENT_ORDER:
 
             # Return de money to user as credits
-            seller.net_income = seller.net_income + order.due_to_seller
+            seller.net_income += order.due_to_seller
 
             Earning.objects.create(
                 user=seller,
